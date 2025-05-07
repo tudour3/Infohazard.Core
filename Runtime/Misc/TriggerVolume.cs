@@ -106,9 +106,11 @@ namespace Infohazard.Core {
                     _objectsToRemove.Add(obj);
                 } else {
                     occupant.Colliders?.RemoveAll(c => !c.enabled);
+#if UNITY_2D_PHYSICS
                     occupant.Collider2Ds?.RemoveAll(c => !c.enabled);
-
-                    if (occupant.Colliders?.Count > 0 || occupant.Collider2Ds?.Count > 0) continue;
+                    if (occupant.Collider2Ds?.Count > 0 ) continue;
+#endif
+                    if (occupant.Colliders?.Count > 0 ) continue;
 
                     _objectsToRemove.Add(obj);
                 }
@@ -119,7 +121,8 @@ namespace Infohazard.Core {
             }
         }
 
-        private void HandleEnter(GameObject other, Collider col, Collider2D col2D) {
+        private void HandleEnter(GameObject other, Collider col, Collider col2D) //Collider2D col2D
+        {
             if (!other.CompareTagMask(_tagFilter)) return;
 
             bool wasContained = _objects.TryGetValue(other, out TriggerOccupant occupant);
@@ -133,33 +136,34 @@ namespace Infohazard.Core {
                 occupant.Colliders.Add(col);
             }
 
+#if UNITY_2D_PHYSICS
             if (col2D) {
                 occupant.Collider2Ds ??= new List<Collider2D>();
                 occupant.Collider2Ds.Add(col2D);
             }
-
+#endif
             if (!wasContained) {
                 _events.OnTriggerEnter?.Invoke();
                 TriggerEntered?.Invoke(other);
             }
         }
 
-        private void HandleExit(GameObject other, Collider col, Collider2D col2D) {
+        private void HandleExit(GameObject other, Collider col, Collider col2D) //Collider2D col2D
+        {
             if (!_objects.TryGetValue(other, out TriggerOccupant occupant)) return;
 
             if (other) {
                 if (col != null && occupant.Colliders != null) {
                     occupant.Colliders.Remove(col);
                 }
-
+                #if UNITY_2D_PHYSICS
                 if (col2D != null && occupant.Collider2Ds != null) {
                     occupant.Collider2Ds.Remove(col2D);
                 }
-
+#endif
                 if (other.gameObject.activeInHierarchy && enabled &&
-                    (occupant.Colliders?.Count > 0 || occupant.Collider2Ds?.Count > 0)) {
-                    return;
-                }
+                    (occupant.Colliders?.Count > 0 )) //|| occupant.Collider2Ds?.Count > 0
+                {return;}
             }
 
             _objects.Remove(other);
@@ -180,7 +184,7 @@ namespace Infohazard.Core {
         private void OnTriggerExit(Collider other) {
             if (enabled) HandleExit(other.gameObject, other, null);
         }
-
+#if UNITY_2D_PHYSICS
         private void OnTriggerEnter2D(Collider2D other) {
             if (enabled) HandleEnter(other.gameObject, null, other);
         }
@@ -188,10 +192,12 @@ namespace Infohazard.Core {
         private void OnTriggerExit2D(Collider2D other) {
             if (enabled) HandleExit(other.gameObject, null, other);
         }
-
+#endif
         private class TriggerOccupant {
             public List<Collider> Colliders;
+#if UNITY_2D_PHYSICS
             public List<Collider2D> Collider2Ds;
+#endif
         }
 
         /// <summary>
